@@ -53,6 +53,7 @@ async def create_invoice(db: AsyncSession, obj_in: InvoiceCreate, company_id: in
     )
     db.add(db_invoice)
     await db.flush()
+    await db.refresh(db_invoice)
     
     # Create Items
     for item in obj_in.items:
@@ -71,22 +72,36 @@ async def create_invoice(db: AsyncSession, obj_in: InvoiceCreate, company_id: in
     # Trigger accounting automation
     await generate_accounting_entries_for_invoice(db, db_invoice)
     
-    # Need to load items relationship to return it correctly
-    stmt = select(Invoice).where(Invoice.id == db_invoice.id)
-    # in an async environment, joinedload is better but for MVP doing a simple refresh works if lazy="selectin" is used in models
-    return db_invoice
+    # Reload with relationships
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Invoice)
+        .options(selectinload(Invoice.items), selectinload(Invoice.client))
+        .where(Invoice.id == db_invoice.id)
+    )
+    return result.scalars().first()
 
 async def get_invoices(db: AsyncSession, company_id: int, skip: int = 0, limit: int = 100) -> List[Invoice]:
-    # TODO: Add joinedload for items if lazy loads fail Pydantic validation
-    result = await db.execute(select(Invoice).where(Invoice.company_id == company_id).offset(skip).limit(limit))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Invoice)
+        .options(selectinload(Invoice.items), selectinload(Invoice.client))
+        .where(Invoice.company_id == company_id)
+        .offset(skip)
+        .limit(limit)
+    )
     return result.scalars().all()
 
 async def get_invoice(db: AsyncSession, invoice_id: int, company_id: int) -> Invoice:
-    result = await db.execute(select(Invoice).where(Invoice.id == invoice_id, Invoice.company_id == company_id))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Invoice)
+        .options(selectinload(Invoice.items), selectinload(Invoice.client))
+        .where(Invoice.id == invoice_id, Invoice.company_id == company_id)
+    )
     invoice = result.scalars().first()
     if not invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
-    # For MVP, assume lazy loading issues are handled by the router/Pydantic
     return invoice
 
 async def register_payment(db: AsyncSession, obj_in: PaymentCreate, company_id: int) -> Payment:

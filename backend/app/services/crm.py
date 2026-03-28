@@ -1,12 +1,21 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from fastapi import HTTPException, status
 from typing import List
 from app.models.crm import Client
 from app.schemas.crm import ClientCreate, ClientUpdate
 
-async def get_clients(db: AsyncSession, company_id: int, skip: int = 0, limit: int = 100) -> List[Client]:
-    result = await db.execute(select(Client).where(Client.company_id == company_id).offset(skip).limit(limit))
+async def get_clients(db: AsyncSession, company_id: int, skip: int = 0, limit: int = 100, search: str = None) -> List[Client]:
+    query = select(Client).where(Client.company_id == company_id)
+    if search:
+        query = query.where(or_(
+            Client.name.ilike(f"%{search}%"),
+            Client.ice.ilike(f"%{search}%"),
+            Client.tax_id.ilike(f"%{search}%"),
+            Client.city.ilike(f"%{search}%"),
+            Client.email.ilike(f"%{search}%"),
+        ))
+    result = await db.execute(query.offset(skip).limit(limit))
     return result.scalars().all()
 
 async def get_client(db: AsyncSession, client_id: int, company_id: int) -> Client:
