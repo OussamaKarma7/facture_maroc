@@ -15,13 +15,14 @@ router = APIRouter()
 
 @router.get("/clients", response_model=List[ClientResponse])
 async def read_clients(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None,
     db: AsyncSession = Depends(get_db),
     company_id: int = Depends(get_current_company_id),
     current_user: User = Depends(get_current_user)
 ):
-    return await get_clients(db, company_id=company_id, skip=skip, limit=limit)
+    return await get_clients(db, company_id=company_id, skip=skip, limit=limit, search=search)
 
 @router.post("/clients", response_model=ClientResponse)
 async def create_new_client(

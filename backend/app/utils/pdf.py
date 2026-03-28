@@ -1,149 +1,123 @@
-import os
-import pdfkit
-from jinja2 import Template
-
-INVOICE_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Invoice {{ invoice.number }}</title>
-    <style>
-        body { font-family: 'Helvetica Neue', 'Helvetica', sans-serif; padding: 40px; color: #333; }
-        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, .15); }
-        .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-        .header-left { float: left; }
-        .header-right { float: right; text-align: right; }
-        .title { font-size: 36px; line-height: 45px; color: #333; }
-        .details { margin-top: 20px; clear: both; margin-bottom: 40px; }
-        .client-info { float: left; }
-        .invoice-info { float: right; text-align: right; }
-        table { width: 100%; line-height: inherit; text-align: left; border-collapse: collapse; clear: both; margin-bottom: 40px; }
-        table th { background: #eee; border-bottom: 1px solid #ddd; font-weight: bold; padding: 10px; }
-        table td { padding: 10px; border-bottom: 1px solid #eee; }
-        .totals { float: right; width: 300px; }
-        .totals-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
-        .totals-row.bold { font-weight: bold; font-size: 1.1em; border-top: 2px solid #333; border-bottom: none; padding-top: 10px; }
-        .footer { text-align: center; margin-top: 50px; font-size: 0.85em; color: #777; border-top: 1px solid #eee; padding-top: 20px; clear:both;}
-    </style>
-</head>
-<body>
-    <div class="invoice-box">
-        <div class="header">
-            <div class="header-left">
-                <h2 style="margin:0;">{{ company.name }}</h2>
-                <p style="margin:0; font-size:0.9em; color:#555;">ICE: {{ company.ice }} | IF: {{ company.tax_id }}</p>
-                <p style="margin:0; font-size:0.9em; color:#555;">RC: {{ company.rc }}</p>
-            </div>
-            <div class="header-right">
-                <div class="title">FACTURE</div>
-                <div style="font-size:1.2em; font-weight:bold; margin-top:5px;">N° {{ invoice.number }}</div>
-            </div>
-        </div>
-        
-        <div class="details">
-            <div class="client-info">
-                <strong>Facturé à:</strong><br>
-                {{ client.name }}<br>
-                ICE: {{ client.ice }}<br>
-                {{ client.address }}<br>
-            </div>
-            <div class="invoice-info">
-                <strong>Date de Facture:</strong> {{ invoice.date }}<br>
-                <strong>Date d'Échéance:</strong> {{ invoice.due_date if invoice.due_date else 'A réception' }}<br>
-            </div>
-        </div>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Description</th>
-                    <th style="text-align:center;">Qté</th>
-                    <th style="text-align:right;">P.U (HT)</th>
-                    <th style="text-align:right;">TVA</th>
-                    <th style="text-align:right;">Total HT</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    <td>{{ item.product_name }}</td>
-                    <td style="text-align:center;">{{ item.quantity }}</td>
-                    <td style="text-align:right;">{{ "{:,.2f}".format(item.unit_price) }} MAD</td>
-                    <td style="text-align:right;">{{ item.vat_rate }}%</td>
-                    <td style="text-align:right;">{{ "{:,.2f}".format(item.quantity * item.unit_price) }} MAD</td>
-                </tr>
-                {% endendfor %}
-            </tbody>
-        </table>
-        
-        <div class="totals">
-            <div class="totals-row">
-                <span>Total HT:</span>
-                <span>{{ "{:,.2f}".format(invoice.total_excl_tax) }} MAD</span>
-            </div>
-            <div class="totals-row">
-                <span>Total TVA:</span>
-                <span>{{ "{:,.2f}".format(invoice.vat_amount) }} MAD</span>
-            </div>
-            <div class="totals-row bold">
-                <span>Total TTC:</span>
-                <span>{{ "{:,.2f}".format(invoice.total_incl_tax) }} MAD</span>
-            </div>
-        </div>
-        
-        <div class="footer">
-            {{ company.name }} - ICE: {{ company.ice }} - IF: {{ company.tax_id }}<br>
-            {{ company.address }}
-        </div>
-    </div>
-</body>
-</html>
-"""
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+import io
 
 def generate_invoice_pdf(invoice, items, company, client) -> bytes:
-    """
-    Generates a PDF from the HTML invoice template.
-    Returns the PDF file as bytes.
-    """
-    template = Template(INVOICE_TEMPLATE)
-    
-    # Process items to include names
-    formatted_items = []
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+        rightMargin=1.5*cm, leftMargin=1.5*cm,
+        topMargin=1.5*cm, bottomMargin=1.5*cm)
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Styles
+    title_style = ParagraphStyle("title", fontSize=22, textColor=colors.HexColor("#1e3a5f"), spaceAfter=4)
+    bold_style = ParagraphStyle("bold", fontSize=10, fontName="Helvetica-Bold")
+    normal_style = ParagraphStyle("normal", fontSize=9, fontName="Helvetica", leading=14)
+    right_style = ParagraphStyle("right", fontSize=9, alignment=TA_RIGHT)
+    small_gray = ParagraphStyle("small", fontSize=8, textColor=colors.gray)
+
+    # Header table: company info left, invoice title right
+    company_name = getattr(company, "name", "")
+    company_ice = getattr(company, "ice", "") or ""
+    company_if = getattr(company, "tax_id", "") or ""
+    company_rc = getattr(company, "rc", "") or ""
+    company_addr = getattr(company, "address", "") or ""
+
+    header_data = [[
+        Paragraph(f"<b>{company_name}</b>", ParagraphStyle("cn", fontSize=14, fontName="Helvetica-Bold")),
+        Paragraph("<b>FACTURE</b>", ParagraphStyle("ft", fontSize=24, fontName="Helvetica-Bold", alignment=TA_RIGHT, textColor=colors.HexColor("#1e3a5f")))
+    ],[
+        Paragraph(f"ICE: {company_ice} | IF: {company_if}<br/>RC: {company_rc}<br/>{company_addr}", small_gray),
+        Paragraph(f"<b>N° {invoice.number}</b>", ParagraphStyle("fn", fontSize=12, alignment=TA_RIGHT, fontName="Helvetica-Bold"))
+    ]]
+    header_table = Table(header_data, colWidths=[10*cm, 8*cm])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 0.5*cm))
+
+    # Divider
+    story.append(Table([[""]], colWidths=[18*cm], rowHeights=[1]))
+    story.append(Spacer(1, 0.3*cm))
+
+    # Client info + invoice dates
+    client_name = getattr(client, "name", "")
+    client_ice = getattr(client, "ice", "") or ""
+    client_addr = getattr(client, "address", "") or ""
+    due_date = invoice.due_date if invoice.due_date else "A reception"
+
+    details_data = [[
+        Paragraph(f"<b>Facture a:</b><br/>{client_name}<br/>ICE: {client_ice}<br/>{client_addr}", normal_style),
+        Paragraph(f"<b>Date:</b> {invoice.date}<br/><b>Echeance:</b> {due_date}", ParagraphStyle("rd", fontSize=9, alignment=TA_RIGHT, leading=16))
+    ]]
+    details_table = Table(details_data, colWidths=[10*cm, 8*cm])
+    details_table.setStyle(TableStyle([("VALIGN", (0,0), (-1,-1), "TOP")]))
+    story.append(details_table)
+    story.append(Spacer(1, 0.6*cm))
+
+    # Items table
+    table_data = [["Description", "Qte", "P.U (HT)", "TVA", "Total HT"]]
     for item in items:
-        # In MVP we might not have the product eagerly loaded
-        product_name = item.product.name if hasattr(item, 'product') and item.product else f"Produit/Service #{item.product_id}"
-        formatted_items.append({
-            "product_name": product_name,
-            "quantity": item.quantity,
-            "unit_price": item.unit_price,
-            "vat_rate": item.vat_rate
-        })
-        
-    html_content = template.render(
-        invoice=invoice,
-        items=formatted_items,
-        company=company,
-        client=client
+        product_name = item.product.name if hasattr(item, "product") and item.product else f"Produit #{item.product_id or ''}"
+        line_total = item.quantity * item.unit_price
+        table_data.append([
+            product_name,
+            str(item.quantity),
+            f"{item.unit_price:,.2f} MAD",
+            f"{item.vat_rate}%",
+            f"{line_total:,.2f} MAD"
+        ])
+
+    items_table = Table(table_data, colWidths=[7*cm, 2*cm, 3.5*cm, 2*cm, 3.5*cm])
+    items_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#1e3a5f")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 9),
+        ("ALIGN", (1,0), (-1,-1), "RIGHT"),
+        ("ALIGN", (0,0), (0,-1), "LEFT"),
+        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#f5f5f5")]),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#dddddd")),
+        ("PADDING", (0,0), (-1,-1), 6),
+    ]))
+    story.append(items_table)
+    story.append(Spacer(1, 0.5*cm))
+
+    # Totals
+    totals_data = [
+        ["", "Total HT:", f"{invoice.total_excl_tax:,.2f} MAD"],
+        ["", "Total TVA:", f"{invoice.vat_amount:,.2f} MAD"],
+        ["", "TOTAL TTC:", f"{invoice.total_incl_tax:,.2f} MAD"],
+    ]
+    totals_table = Table(totals_data, colWidths=[9*cm, 5*cm, 4*cm])
+    totals_table.setStyle(TableStyle([
+        ("ALIGN", (1,0), (-1,-1), "RIGHT"),
+        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+        ("FONTNAME", (1,2), (-1,2), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 9),
+        ("FONTSIZE", (1,2), (-1,2), 11),
+        ("TEXTCOLOR", (1,2), (-1,2), colors.HexColor("#1e3a5f")),
+        ("LINEABOVE", (1,2), (-1,2), 1, colors.HexColor("#1e3a5f")),
+        ("PADDING", (0,0), (-1,-1), 4),
+    ]))
+    story.append(totals_table)
+    story.append(Spacer(1, 1*cm))
+
+    # Footer
+    footer = Paragraph(
+        f"{company_name} - ICE: {company_ice} - IF: {company_if} | {company_addr}",
+        ParagraphStyle("footer", fontSize=7, textColor=colors.gray, alignment=TA_CENTER)
     )
-    
-    # Generate PDF safely
-    options = {
-        'page-size': 'A4',
-        'margin-top': '0.75in',
-        'margin-right': '0.75in',
-        'margin-bottom': '0.75in',
-        'margin-left': '0.75in',
-        'encoding': "UTF-8",
-        'disable-smart-shrinking': '',
-    }
-    
-    # Windows fallback if wkhtmltopdf is not strictly available locally during direct execution
-    # In docker, it will use the wrapper installed in the apt-get step
-    try:
-        pdf_bytes = pdfkit.from_string(html_content, False, options=options)
-        return pdf_bytes
-    except Exception as e:
-        # Fallback to HTML bytes if wkhtmltopdf fails locally
-        print(f"PDFKit failed: {e}. Falling back to HTML string bytes.")
-        return html_content.encode('utf-8')
+    story.append(footer)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.read()

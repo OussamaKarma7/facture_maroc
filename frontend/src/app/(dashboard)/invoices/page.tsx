@@ -45,11 +45,6 @@ export default function InvoicesPage() {
   };
 
   const handleDownloadPdf = (invoiceId: number, invoiceNumber: string) => {
-    // Generate full URL for direct browser download
-    const token = localStorage.getItem("access_token");
-    const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/invoices/${invoiceId}/pdf?token=${token}`;
-    
-    // We fetch the Blob and download it to handle Auth headers correctly
     apiFetch(`/invoices/${invoiceId}/pdf`)
       .then(blob => {
         if (!blob) return;

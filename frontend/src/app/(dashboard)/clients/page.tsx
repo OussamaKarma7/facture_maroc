@@ -8,9 +8,8 @@ type Client = {
   id: number;
   name: string;
   ice: string;
-  if: string;
+  tax_id: string;
   address: string;
-  city: string;
   phone: string;
   email: string;
 };
@@ -154,14 +153,14 @@ export default function ClientsPage() {
                   </td>
                   <td className="py-3 px-6 text-sm">
                     <p className="text-slate-800 font-medium">ICE: <span className="text-slate-500 font-normal">{client.ice}</span></p>
-                    <p className="text-slate-800 font-medium text-xs mt-0.5">IF: <span className="text-slate-500 font-normal">{client.if}</span></p>
+                    <p className="text-slate-800 font-medium text-xs mt-0.5">IF/Tax ID: <span className="text-slate-500 font-normal">{client.tax_id}</span></p>
                   </td>
                   <td className="py-3 px-6 text-sm text-slate-600">
                     <p>{client.email}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{client.phone}</p>
                   </td>
                   <td className="py-3 px-6 text-sm text-slate-600">
-                    {client.city}
+                    {}
                   </td>
                   <td className="py-3 px-6 text-right">
                     <div className="flex justify-end space-x-1">
@@ -285,8 +284,8 @@ export default function ClientsPage() {
                     readOnly={modalMode === "view"}
                     className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black placeholder-gray-600 ${modalMode === "view" ? "bg-slate-50" : "bg-white"}`}
                     style={{ color: "black" }}
-                    value={formData.if || ""}
-                    onChange={e => setFormData({...formData, if: e.target.value})}
+                    value={formData.tax_id || ""}
+                    onChange={e => setFormData({...formData, tax_id: e.target.value})}
                   />
                 </div>
 
@@ -333,7 +332,7 @@ export default function ClientsPage() {
                     readOnly={modalMode === "view"}
                     className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-950 font-medium placeholder-slate-500 ${modalMode === "view" ? "bg-slate-50" : ""}`}
                     style={{ color: "#0f172a" }}
-                    value={formData.city || ""}
+                    
                     onChange={e => setFormData({...formData, city: e.target.value})}
                   />
                 </div>
