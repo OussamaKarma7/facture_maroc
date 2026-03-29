@@ -26,7 +26,7 @@ async def get_client(db: AsyncSession, client_id: int, company_id: int) -> Clien
     return client
 
 async def create_client(db: AsyncSession, obj_in: ClientCreate, company_id: int) -> Client:
-    db_obj = Client(**obj_in.dict(), company_id=company_id)
+    db_obj = Client(**obj_in.model_dump(), company_id=company_id)
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)
@@ -34,7 +34,7 @@ async def create_client(db: AsyncSession, obj_in: ClientCreate, company_id: int)
 
 async def update_client(db: AsyncSession, client_id: int, obj_in: ClientUpdate, company_id: int) -> Client:
     db_obj = await get_client(db, client_id, company_id)
-    update_data = obj_in.dict(exclude_unset=True)
+    update_data = obj_in.model_dump(exclude_none=False, exclude_unset=False)
     for field, value in update_data.items():
         setattr(db_obj, field, value)
     await db.commit()

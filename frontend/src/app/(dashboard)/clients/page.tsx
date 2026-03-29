@@ -10,6 +10,7 @@ type Client = {
   ice: string;
   tax_id: string;
   address: string;
+  city: string;
   phone: string;
   email: string;
 };
@@ -22,15 +23,17 @@ export default function ClientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState<Partial<Client>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchClients();
   }, []);
 
-  const fetchClients = async () => {
+  const fetchClients = async (search?: string) => {
     try {
       setIsLoading(true);
-      const data = await apiFetch("/clients");
+      const url = search ? `/clients?search=${encodeURIComponent(search)}` : "/clients";
+      const data = await apiFetch(url);
       setClients(data || []);
       setError("");
     } catch (err: any) {
@@ -117,7 +120,9 @@ export default function ClientsPage() {
           <div className="flex space-x-2">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Rechercher un client (Nom, ICE, Email)..." className="pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500 text-slate-900" 
+              <input type="text" placeholder="Rechercher un client (Nom, ICE, Email)..." className="pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500 text-slate-900"
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); fetchClients(e.target.value); }}
               />
             </div>
           </div>
@@ -159,9 +164,7 @@ export default function ClientsPage() {
                     <p>{client.email}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{client.phone}</p>
                   </td>
-                  <td className="py-3 px-6 text-sm text-slate-600">
-                    {}
-                  </td>
+                  <td className="py-3 px-6 text-sm text-slate-600">{client.city}</td>
                   <td className="py-3 px-6 text-right">
                     <div className="flex justify-end space-x-1">
                       <button 
@@ -327,15 +330,16 @@ export default function ClientsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ville</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     readOnly={modalMode === "view"}
-                    className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-950 font-medium placeholder-slate-500 ${modalMode === "view" ? "bg-slate-50" : ""}`}
-                    style={{ color: "#0f172a" }}
-                    
+                    className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black ${modalMode === "view" ? "bg-slate-50" : "bg-white"}`}
+                    value={formData.city || ""}
                     onChange={e => setFormData({...formData, city: e.target.value})}
                   />
                 </div>
+
+
               </div>
 
               <div className="mt-8 flex justify-end space-x-3 pt-4 border-t border-slate-200">

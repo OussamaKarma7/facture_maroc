@@ -57,7 +57,7 @@ async def generate_accounting_entries_for_payment(db: AsyncSession, payment: Pay
         company_id=payment.company_id,
         reference=f"PAY-{payment.id}",
         date=payment.date,
-        description=f"Paiement reçu - Réf: {payment.reference or payment.id}"
+        description=f"Paiement reçu - Réf: {payment.id}"
     )
     db.add(je)
     await db.flush()
