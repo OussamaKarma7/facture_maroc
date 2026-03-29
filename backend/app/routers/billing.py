@@ -13,13 +13,15 @@ router = APIRouter()
 
 @router.get("/invoices", response_model=List[InvoiceResponse])
 async def read_invoices(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None,
+    status: str = None,
     db: AsyncSession = Depends(get_db),
     company_id: int = Depends(get_current_company_id),
     current_user: User = Depends(get_current_user)
 ):
-    return await get_invoices(db, company_id=company_id, skip=skip, limit=limit)
+    return await get_invoices(db, company_id=company_id, skip=skip, limit=limit, search=search, status=status)
 
 @router.post("/invoices", response_model=InvoiceResponse)
 async def create_new_invoice(

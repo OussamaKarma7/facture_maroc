@@ -25,16 +25,22 @@ export default function InvoicesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     setMounted(true);
     fetchInvoices();
   }, []);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (search?: string, status?: string) => {
     try {
       setIsLoading(true);
-      const data = await apiFetch("/invoices");
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (status) params.append("status", status);
+      const url = params.toString() ? `/invoices?${params.toString()}` : "/invoices";
+      const data = await apiFetch(url);
       setInvoices(data || []);
       setError("");
     } catch (err: any) {
@@ -98,12 +104,12 @@ export default function InvoicesPage() {
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
           <div className="flex space-x-2">
-            <input type="text" placeholder="Rechercher une facture..." className="px-3 py-1.5 border border-slate-300 rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-400 placeholder-slate-400 text-slate-500" />
-            <select className="px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white placeholder-slate-400 placeholder-slate-400 text-slate-500">
-              <option>Tous les statuts</option>
-              <option>Payée</option>
-              <option>Envoyée</option>
-              <option>En retard</option>
+            <input type="text" placeholder="N° facture ou nom client..." className="px-3 py-1.5 border border-slate-300 rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-400 text-slate-500" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); fetchInvoices(e.target.value, statusFilter); }} />
+            <select className="px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-500" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); fetchInvoices(searchQuery, e.target.value); }}>
+              <option value="">Tous les statuts</option>
+              <option value="SENT">Envoyée</option>
+              <option value="PAID">Payée</option>
+              <option value="CANCELLED">Annulée</option>
             </select>
           </div>
         </div>
@@ -120,7 +126,7 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {invoices.map((invoice) => (
+              {invoices.filter(invoice => invoice.type !== "CREDIT_NOTE").map((invoice) => (
                 <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
                   <td className="py-3 px-6 text-sm font-medium text-slate-900">
                     <div className="flex items-center">
@@ -141,13 +147,15 @@ export default function InvoicesPage() {
                   <td className="py-3 px-6 text-center flex justify-center">{getStatusBadge(invoice.status)}</td>
                   <td className="py-3 px-6 text-right">
                     <div className="flex justify-end space-x-2">
-                      <button 
-                        onClick={() => handleDownloadPdf(invoice.id, invoice.number)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" 
-                        title="Télécharger PDF"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
+                      {invoice.status !== "CANCELLED" && invoice.type !== "CREDIT_NOTE" && (
+                        <button 
+                          onClick={() => handleDownloadPdf(invoice.id, invoice.number)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" 
+                          title="Télécharger PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      )}
                       
                       {invoice.type !== "CREDIT_NOTE" && ["SENT", "PAID", "OVERDUE"].includes(invoice.status) && (
                         <button 

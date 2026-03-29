@@ -9,6 +9,7 @@ class ClientBase(BaseModel):
     address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    city: Optional[str] = None
 
 class ClientCreate(ClientBase):
     pass
@@ -31,6 +32,7 @@ class SupplierBase(BaseModel):
     address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    city: Optional[str] = None
 
 class SupplierCreate(SupplierBase):
     pass

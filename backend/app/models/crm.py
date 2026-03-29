@@ -12,6 +12,7 @@ class Client(Base):
     tax_id = Column(String) # IF
     address = Column(String)
     email = Column(String)
+    city = Column(String)
     phone = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -27,6 +28,7 @@ class Supplier(Base):
     ice = Column(String)
     tax_id = Column(String) # IF
     address = Column(String)
+    city = Column(String)
     email = Column(String)
     phone = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
