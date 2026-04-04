@@ -12,6 +12,7 @@ class ClientSimple(BaseModel):
 
 class QuoteItemBase(BaseModel):
     product_id: Optional[int] = None
+    description: Optional[str] = None
     quantity: float
     unit_price: float
     vat_rate: float
@@ -45,6 +46,7 @@ class QuoteResponse(QuoteBase):
 
 class InvoiceItemBase(BaseModel):
     product_id: Optional[int] = None
+    description: Optional[str] = None
     quantity: float
     unit_price: float
     vat_rate: float

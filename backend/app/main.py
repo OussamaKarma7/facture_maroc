@@ -4,7 +4,7 @@ from app.config import settings
 from app.database import engine, Base
 
 # Import Routers
-from app.routers import auth, crm, catalog, billing, reports, accounting, settings as site_settings, documents
+from app.routers import auth, crm, catalog, billing, reports, accounting, settings as site_settings, documents, assistant
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -25,6 +25,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(accounting.router, prefix="/api/accounting", tags=["accounting"])
 app.include_router(site_settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(assistant.router, prefix="/api", tags=["assistant"])
 
 
 

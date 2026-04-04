@@ -53,6 +53,7 @@ class QuoteItem(Base):
     quantity = Column(Float, nullable=False, default=1.0)
     unit_price = Column(Float, nullable=False)
     vat_rate = Column(Float, nullable=False)
+    description = Column(String, nullable=True)
 
     quote = relationship("Quote", back_populates="items")
     product = relationship("Product")
@@ -86,6 +87,7 @@ class InvoiceItem(Base):
     quantity = Column(Float, nullable=False, default=1.0)
     unit_price = Column(Float, nullable=False)
     vat_rate = Column(Float, nullable=False)
+    description = Column(String, nullable=True)
 
     invoice = relationship("Invoice", back_populates="items")
     product = relationship("Product")

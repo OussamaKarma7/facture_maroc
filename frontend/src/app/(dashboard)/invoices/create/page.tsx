@@ -58,6 +58,7 @@ export default function CreateInvoicePage() {
         due_date: dueDate || null,
         status: status,
         items: validItems.map(item => ({
+          description: item.description,
           quantity: item.quantity,
           unit_price: item.unitPrice,
           vat_rate: item.vatRate
