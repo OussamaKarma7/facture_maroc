@@ -41,5 +41,9 @@ async def register_user_and_company(db: AsyncSession, user_in: UserCreate) -> Us
     db.add(company_user)
     await db.commit()
     await db.refresh(new_user)
-    
+
+    # Initialiser le Plan Comptable Marocain pour la nouvelle entreprise
+    from app.services.pcm import initialize_pcm
+    await initialize_pcm(db, new_company.id)
+
     return new_user

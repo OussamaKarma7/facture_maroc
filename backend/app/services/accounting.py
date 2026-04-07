@@ -141,3 +141,132 @@ async def get_general_ledger(db: AsyncSession, company_id: int):
             "balance": float(total_debit) - float(total_credit)
         })
     return ledger
+
+async def generate_bilan(db: AsyncSession, company_id: int) -> dict:
+    """Genere le Bilan comptable selon le PCM marocain."""
+    stmt = (
+        select(
+            Account.code,
+            Account.name,
+            Account.type,
+            Account.account_class,
+            func.coalesce(func.sum(JournalEntryLine.debit), 0.0).label("total_debit"),
+            func.coalesce(func.sum(JournalEntryLine.credit), 0.0).label("total_credit")
+        )
+        .outerjoin(JournalEntryLine, Account.id == JournalEntryLine.account_id)
+        .where(Account.company_id == company_id)
+        .group_by(Account.id)
+        .order_by(Account.code)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    actif = []
+    passif = []
+    total_actif = 0.0
+    total_passif = 0.0
+
+    for row in rows:
+        debit = float(row.total_debit)
+        credit = float(row.total_credit)
+        solde = debit - credit
+        account_class = row.account_class or ""
+
+        if solde == 0:
+            continue
+
+        item = {
+            "code": row.code,
+            "name": row.name,
+            "solde": abs(solde)
+        }
+
+        # ACTIF: classes 2, 3, 5 avec solde debiteur
+        if account_class in ["2", "3", "5"] and solde > 0:
+            actif.append(item)
+            total_actif += abs(solde)
+
+        # PASSIF: classes 1, 4 avec solde crediteur
+        elif account_class in ["1", "4"] and solde < 0:
+            passif.append(item)
+            total_passif += abs(solde)
+
+    # Resultat de l'exercice
+    resultat = total_actif - total_passif
+    if resultat != 0:
+        if resultat > 0:
+            passif.append({"code": "1161", "name": "Resultat net (benefice)", "solde": resultat})
+            total_passif += resultat
+        else:
+            actif.append({"code": "1161", "name": "Resultat net (perte)", "solde": abs(resultat)})
+            total_actif += abs(resultat)
+
+    return {
+        "actif": actif,
+        "passif": passif,
+        "total_actif": total_actif,
+        "total_passif": total_passif,
+        "resultat": resultat,
+        "is_balanced": abs(total_actif - total_passif) < 0.01
+    }
+
+
+async def generate_cpc(db: AsyncSession, company_id: int) -> dict:
+    """Genere le Compte de Produits et Charges selon le PCM marocain."""
+    stmt = (
+        select(
+            Account.code,
+            Account.name,
+            Account.type,
+            Account.account_class,
+            func.coalesce(func.sum(JournalEntryLine.debit), 0.0).label("total_debit"),
+            func.coalesce(func.sum(JournalEntryLine.credit), 0.0).label("total_credit")
+        )
+        .outerjoin(JournalEntryLine, Account.id == JournalEntryLine.account_id)
+        .where(Account.company_id == company_id)
+        .where(Account.account_class.in_(["6", "7"]))
+        .group_by(Account.id)
+        .order_by(Account.code)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    produits = []
+    charges = []
+    total_produits = 0.0
+    total_charges = 0.0
+
+    for row in rows:
+        debit = float(row.total_debit)
+        credit = float(row.total_credit)
+        solde = debit - credit
+
+        if solde == 0:
+            continue
+
+        item = {
+            "code": row.code,
+            "name": row.name,
+            "montant": abs(solde)
+        }
+
+        # Produits: classe 7 solde crediteur
+        if row.account_class == "7" and solde < 0:
+            produits.append(item)
+            total_produits += abs(solde)
+
+        # Charges: classe 6 solde debiteur
+        elif row.account_class == "6" and solde > 0:
+            charges.append(item)
+            total_charges += abs(solde)
+
+    resultat_exploitation = total_produits - total_charges
+
+    return {
+        "produits": produits,
+        "charges": charges,
+        "total_produits": total_produits,
+        "total_charges": total_charges,
+        "resultat_exploitation": resultat_exploitation,
+        "resultat_net": resultat_exploitation
+    }
