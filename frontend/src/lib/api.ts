@@ -1,6 +1,6 @@
 import { getToken, removeToken } from "./auth";
 
-const envUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const envUrl = "https://crispy-cod-jjj4rqgvw66gfqr46-8000.app.github.dev";
 export const API_BASE_URL = envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
 
 interface FetchOptions extends Omit<RequestInit, 'body'> {
