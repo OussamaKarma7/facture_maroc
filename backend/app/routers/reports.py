@@ -37,7 +37,8 @@ async def get_dashboard_data(
             func.sum(Invoice.total_incl_tax).label('total')
         ).where(
             Invoice.company_id == company_id,
-            Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.OVERDUE])
+            Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.OVERDUE]),
+            Invoice.type == "STANDARD"
         )
     )
     unpaid_res = unpaid_query.first()

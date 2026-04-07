@@ -47,6 +47,7 @@ async def create_invoice(db: AsyncSession, obj_in: InvoiceCreate, company_id: in
         db_item = InvoiceItem(
             invoice_id=db_invoice.id,
             product_id=item.product_id,
+            description=item.description,
             quantity=item.quantity,
             unit_price=item.unit_price,
             vat_rate=item.vat_rate
@@ -106,10 +107,16 @@ async def generate_credit_note(db: AsyncSession, invoice_id: int, company_id: in
         vat_amount=-original.vat_amount,
         total_incl_tax=-original.total_incl_tax
     )
+    original.status = InvoiceStatus.CANCELLED
     db.add(credit_note)
     await db.commit()
     await db.refresh(credit_note)
-    return credit_note
+    result = await db.execute(
+        select(Invoice)
+        .options(selectinload(Invoice.items), selectinload(Invoice.client))
+        .where(Invoice.id == credit_note.id)
+    )
+    return result.scalars().first()
 
 async def register_payment(db: AsyncSession, obj_in: PaymentCreate, company_id: int) -> Payment:
     invoice = await get_invoice(db, obj_in.invoice_id, company_id)
@@ -131,7 +138,9 @@ async def register_payment(db: AsyncSession, obj_in: PaymentCreate, company_id: 
 async def get_payments(db: AsyncSession, company_id: int, skip: int = 0, limit: int = 100) -> List[Payment]:
     result = await db.execute(
         select(Payment)
+        .join(Invoice, Payment.invoice_id == Invoice.id)
         .where(Payment.company_id == company_id)
+        .where(Invoice.status == InvoiceStatus.PAID)
         .offset(skip)
         .limit(limit)
     )

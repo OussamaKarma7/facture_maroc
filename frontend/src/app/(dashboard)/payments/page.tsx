@@ -35,8 +35,7 @@ export default function PaymentsPage() {
         apiFetch("/invoices")
       ]);
       setPayments(paymentsData || []);
-      // Filter unpaid invoices if needed, or just show all
-      setInvoices(invoicesData || []);
+      setInvoices((invoicesData || []).filter((inv: any) => inv.status === "SENT" && inv.type === "STANDARD"));
       setError("");
     } catch (err: any) {
       setError("Erreur lors du chargement des données. " + err.message);

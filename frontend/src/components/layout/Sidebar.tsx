@@ -14,6 +14,7 @@ import {
   FolderOpen,
   ShoppingCart
 } from "lucide-react";
+import { Bot } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 import { removeToken } from "../../lib/auth";
@@ -38,6 +39,7 @@ export default function Sidebar() {
     { name: "Fiscalité", icon: BarChart2, path: "/taxes" },
     { name: "Rapports", icon: BarChart2, path: "/reports" },
     { name: "Documents", icon: FolderOpen, path: "/documents" },
+    { name: "Assistant IA", icon: Bot, path: "/assistant" },
     { name: "Paramètres", icon: Settings, path: "/settings" },
   ];
 
