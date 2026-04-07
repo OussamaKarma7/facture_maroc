@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.services.gmail import check_new_emails_and_reply
+from app.database import AsyncSessionLocal
 
 # Import Routers
-from app.routers import auth, crm, catalog, billing, reports, accounting, settings as site_settings, documents
+from app.routers import auth, crm, catalog, billing, reports, accounting, ai, settings as site_settings, documents
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -25,6 +28,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(accounting.router, prefix="/api/accounting", tags=["accounting"])
 app.include_router(site_settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 
 
 
@@ -32,10 +36,30 @@ app.include_router(documents.router, prefix="/api/documents", tags=["documents"]
 
 
 @app.on_event("startup")
+@app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
-        # Create all tables on startup (replace with Alembic in production)
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Démarrer le scheduler pour Gmail
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(scheduled_gmail_check, 'interval', minutes=10, id='gmail_check')
+    scheduler.start()
+    
+    print("✅ Application démarrée")
+    print("✅ Scheduler Gmail activé (vérification toutes les 10 minutes)")
+
+
+async def scheduled_gmail_check():
+    """Vérifie les emails Gmail toutes les 10 minutes pour tous les utilisateurs"""
+    print("🔄 Vérification des nouveaux emails Gmail...")
+    async with AsyncSessionLocal() as db:
+        # Pour le moment, on teste avec le premier utilisateur/company
+        # Plus tard on bouclera sur toutes les intégrations Gmail actives
+        try:
+            await check_new_emails_and_reply(db, company_id=1, user_id=1)
+        except Exception as e:
+            print(f"Erreur scheduler Gmail: {e}")
 
 @app.get("/")
 def read_root():

@@ -47,3 +47,18 @@ class CompanyUser(Base):
 
     user = relationship("User", back_populates="company_associations")
     company = relationship("Company", back_populates="user_associations")
+
+class GmailIntegration(Base):
+    __tablename__ = "gmail_integrations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    gmail_address = Column(String, unique=True, nullable=False)
+    refresh_token = Column(String, nullable=False)      # On le chiffrera plus tard
+    last_history_id = Column(String, nullable=True)
+    last_checked_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    company = relationship("Company")
