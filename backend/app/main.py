@@ -28,7 +28,8 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(accounting.router, prefix="/api/accounting", tags=["accounting"])
 app.include_router(site_settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
-app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+# Change cette ligne dans main.py
+app.include_router(ai.router, prefix="/api", tags=["ai"])  
 
 
 

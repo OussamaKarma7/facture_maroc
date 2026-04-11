@@ -1,51 +1,47 @@
-# backend/app/services/ai_tools.py
-# backend/app/services/ai_tools.py
-"""
-Tools disponibles pour l'Assistant IA Grok
-Version simplifiée pour démarrage rapide
-"""
-
-from typing import Any, Dict, List
-
-async def list_invoices(db, company_id: int, status: str = None):
-    """Récupérer la liste des factures"""
-    from app.services.billing import get_invoices
-    return await get_invoices(db, company_id=company_id, status=status)
-
-async def list_clients(db, company_id: int):
-    """Récupérer la liste des clients"""
-    from app.services.crm import get_clients
-    return await get_clients(db, company_id=company_id)
-
-async def get_vat_report(db, company_id: int):
-    """Récupérer le rapport de TVA"""
-    from app.services.reports import get_vat_report   # si le service existe
-    # Pour l'instant on retourne un message si le service n'existe pas encore
-    return {"message": "Rapport TVA en cours de développement"}
+import json
+# Importe ici tes fonctions de base de données (ex: get_invoices, get_clients...)
 
 def get_all_tools(company_id: int, user_id: int):
-    """Retourne la liste des tools pour Grok"""
+    """
+    Retourne la liste des outils. 
+    Chaque dictionnaire DOIT avoir 'type' ET 'function'.
+    """
     return [
         {
-            "name": "list_invoices",
-            "description": "Liste toutes les factures de l'entreprise. Utile quand l'utilisateur demande ses factures ou son CA.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "status": {"type": "string", "enum": ["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"]}
-                },
-                "required": []
-            },
-            "func": list_invoices
-        },
-        {
-            "name": "list_clients",
-            "description": "Liste tous les clients de l'entreprise.",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            },
-            "func": list_clients
+            "type": "function",  # <--- DOIT ÊTRE ICI
+            "function": {
+                "name": "get_invoice_stats",
+                "description": "Récupère les statistiques des factures de l'entreprise.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "status": {
+                            "type": "string",
+                            "enum": ["PAID", "SENT", "DRAFT"],
+                            "description": "Filtrer par statut"
+                        }
+                    },
+                    "required": []
+                }
+            }
         }
     ]
+
+async def call_tool_function(function_name: str, company_id: int, **kwargs):
+    # Ton code de dispatcher ici...
+    return {"status": "success"}
+async def call_tool_function(function_name: str, company_id: int, **kwargs):
+    """L'aiguilleur qui exécute la vraie logique Python"""
+    
+    if function_name == "get_invoice_stats":
+        # Ici, tu appelles ta vraie fonction de base de données
+        # Exemple factice :
+        return {
+            "total_amount": "45.000 DH",
+            "status": kwargs.get("status", "tous"),
+            "count": 12
+        }
+    
+    # Ajoute d'autres elif pour chaque nouvel outil
+    
+    return {"error": "Fonction non trouvée"}
