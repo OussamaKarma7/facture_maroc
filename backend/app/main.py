@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.services.gmail import check_new_emails_and_reply
 from app.database import AsyncSessionLocal
 
-# Import Routers
+# Import Routers - ASSURE-TOI QUE CES FICHIERS EXISTENT DANS app/routers/
 from app.routers import auth, crm, catalog, billing, reports, accounting, ai, settings as site_settings, documents
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -28,35 +28,24 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(accounting.router, prefix="/api/accounting", tags=["accounting"])
 app.include_router(site_settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
-# Change cette ligne dans main.py
+
+# ON GARDE UN SEUL ROUTER POUR L'IA (Vérifie bien que app/routers/ai.py existe)
 app.include_router(ai.router, prefix="/api", tags=["ai"])  
 
-
-
-
-
-
-@app.on_event("startup")
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    # Démarrer le scheduler pour Gmail
     scheduler = AsyncIOScheduler()
     scheduler.add_job(scheduled_gmail_check, 'interval', minutes=10, id='gmail_check')
     scheduler.start()
     
     print("✅ Application démarrée")
-    print("✅ Scheduler Gmail activé (vérification toutes les 10 minutes)")
-
+    print("✅ Scheduler Gmail activé")
 
 async def scheduled_gmail_check():
-    """Vérifie les emails Gmail toutes les 10 minutes pour tous les utilisateurs"""
-    print("🔄 Vérification des nouveaux emails Gmail...")
     async with AsyncSessionLocal() as db:
-        # Pour le moment, on teste avec le premier utilisateur/company
-        # Plus tard on bouclera sur toutes les intégrations Gmail actives
         try:
             await check_new_emails_and_reply(db, company_id=1, user_id=1)
         except Exception as e:
