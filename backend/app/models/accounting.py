@@ -19,6 +19,7 @@ class Account(Base):
     name = Column(String, nullable=False)
     type = Column(Enum(AccountType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    account_class = Column(String, nullable=True)
 
 class JournalEntry(Base):
     __tablename__ = "journal_entries"
